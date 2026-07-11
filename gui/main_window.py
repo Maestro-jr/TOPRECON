@@ -99,6 +99,7 @@ class MainWindow(QMainWindow):
         self._titlebar = TitleBar("HIVE PIVOT ENGINE",
                                   "AUTONOMOUS OSINT · ENTITY PIVOTING · INTEL FUSION")
         self._titlebar.new_recon_requested.connect(self.new_recon)
+        self._titlebar.keys_requested.connect(self._open_keys)
         self._titlebar.minimize_requested.connect(self.showMinimized)
         self._titlebar.maximize_requested.connect(self._toggle_max)
         self._titlebar.close_requested.connect(self.close)
@@ -346,6 +347,18 @@ class MainWindow(QMainWindow):
         from gui.panels.history_replay import HistoryDialog
         HistoryDialog(self._settings, self._gate.apex, self._graph, self).exec()
 
+    def _open_keys(self) -> None:
+        """Open the API Keys dialog; on save, re-evaluate module availability so
+        newly-keyed sources flip from 'Needs Key' to 'Idle' without a restart."""
+        from gui.panels.keys_dialog import ApiKeysDialog
+        dlg = ApiKeysDialog(self._settings, self)
+        if dlg.exec() != ApiKeysDialog.DialogCode.Accepted:
+            return
+        self._engine.refresh_module_availability()
+        self._modules.reset(self._engine.module_list())
+        self.statusBar().showMessage(
+            "API keys saved to config/.env and applied to this session.", 5000)
+
     # ---- New Recon (switch target in-app, no restart) ---------------------
     def new_recon(self) -> None:
         """Open the Authorization Gate again for a NEW target and, once the
@@ -386,6 +399,7 @@ class MainWindow(QMainWindow):
         self._summary.update_summary(self._engine.module_list(), 0)
         self._google.update_recon(0)
         self._user_stopped = False
+        self._last_graph_v = -1
         self._btn_pause.setEnabled(True); self._btn_pause.setText("⏸  PAUSE")
         self._btn_stop.setEnabled(True)
         self._btn_google.setChecked(False)
@@ -400,16 +414,23 @@ class MainWindow(QMainWindow):
     # -- throttled UI sync --------------------------------------------------
     def _sync_ui(self) -> None:
         try:
-            self._graph_view.refresh()
-            self._entity_types.update_counts(self._graph.counts_by_type())
-            by_depth = {int(k) if not isinstance(k, int) else k: v
-                        for k, v in self._graph.counts_by_depth().items()}
-            self._depth.update_depths(by_depth, self._engine.max_depth)
+            # Graph-derived panels only recompute when the graph actually changed
+            # — idle frames (a settled scan) cost nothing.
+            gv = self._graph.version
+            if gv != getattr(self, "_last_graph_v", -1):
+                self._last_graph_v = gv
+                self._graph_view.refresh()
+                self._entity_types.update_counts(self._graph.counts_by_type())
+                by_depth = {int(k) if not isinstance(k, int) else k: v
+                            for k, v in self._graph.counts_by_depth().items()}
+                self._depth.update_depths(by_depth, self._engine.max_depth)
+                self._summary.update_summary(self._engine.module_list(),
+                                             self._engine.rate.total_requests)
+                self._last_findings = self._risk.refresh()
+                self._google.update_recon(len(self._last_findings))
+            # The pivot queue changes as work is dequeued even with no new
+            # entities, so it updates every tick (internally change-gated).
             self._pivot_q.update_queue(self._engine.pending_list())
-            self._summary.update_summary(self._engine.module_list(),
-                                         self._engine.rate.total_requests)
-            self._last_findings = self._risk.refresh()
-            self._google.update_recon(len(self._last_findings))
         except Exception:  # noqa: BLE001 — a sync hiccup must not crash the UI
             pass
 

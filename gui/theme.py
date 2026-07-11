@@ -91,6 +91,10 @@ def stylesheet() -> str:
         border: 1px solid {ACCENT_DIM}; border-radius: 5px; padding: 7px 16px;
         font-family: {FONT_MONO}; font-size: 11px; font-weight: 800; letter-spacing: 1px; }}
     QPushButton#newRecon:hover {{ background: #12472c; border-color: {ACCENT}; }}
+    QPushButton#keysBtn {{ background: transparent; color: {TEXT_MUTED};
+        border: 1px solid {BORDER_HI}; border-radius: 5px; padding: 7px 12px;
+        font-family: {FONT_MONO}; font-size: 11px; font-weight: 700; letter-spacing: 1px; }}
+    QPushButton#keysBtn:hover {{ color: {ACCENT_TEAL}; border-color: {ACCENT_TEAL}; }}
     QPushButton#winBtn {{ background: transparent; color: {TEXT_MUTED};
         border: none; border-radius: 5px; font-size: 13px; font-weight: 700; }}
     QPushButton#winBtn:hover {{ background: {BG_PANEL_HI}; color: {TEXT_BRIGHT}; }}

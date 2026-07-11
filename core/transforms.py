@@ -14,8 +14,8 @@ Emits are (entity, edge_kind) pairs the engine folds into the graph.
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Iterable, Optional
+from dataclasses import dataclass
+from typing import Any, Callable, Optional
 
 from .entities import Entity, EntityType
 from .graph import EDGE_DISCOVERED, EDGE_PIVOT

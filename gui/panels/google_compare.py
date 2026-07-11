@@ -9,7 +9,6 @@ otherwise degrades to an honest explanatory placeholder (never fabricated hits).
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget,
                              QListWidget, QListWidgetItem, QGridLayout)

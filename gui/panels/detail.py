@@ -6,8 +6,7 @@ from typing import Optional
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import (QLabel, QVBoxLayout, QWidget, QListWidget,
-                             QListWidgetItem, QFrame, QHBoxLayout)
+from PyQt6.QtWidgets import QLabel, QListWidget, QListWidgetItem
 
 from gui import theme
 from gui.widgets.common import Panel

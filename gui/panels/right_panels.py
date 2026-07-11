@@ -101,19 +101,30 @@ class PivotQueuePanel(Panel):
         hh.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         hh.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.body.addWidget(self._t, 1)
+        self._sig = None
 
     def update_queue(self, pending: list) -> None:
         self.set_badge(str(len(pending)))
         show = pending[:60]
-        self._t.setRowCount(len(show))
+        # Skip the (allocating) table rebuild when the visible queue is unchanged.
+        sig = tuple((pk.entity_value, pk.tool, pk.status) for pk in show)
+        if sig == self._sig:
+            return
+        self._sig = sig
+        if self._t.rowCount() != len(show):
+            self._t.setRowCount(len(show))
         for r, pk in enumerate(show):
-            vals = [pk.entity_value, pk.from_type, pk.tool_display, pk.status]
+            vals = (pk.entity_value, pk.from_type, pk.tool_display, pk.status)
             for c, v in enumerate(vals):
-                it = QTableWidgetItem(str(v))
+                it = self._t.item(r, c)
+                if it is None:
+                    it = QTableWidgetItem(str(v))
+                    self._t.setItem(r, c, it)
+                elif it.text() != str(v):
+                    it.setText(str(v))
                 if c == 3:
                     col = theme.RUNNING if pk.status == "Running" else theme.QUEUED
                     it.setForeground(QColor(col))
-                self._t.setItem(r, c, it)
 
 
 class RecentDiscoveriesPanel(Panel):

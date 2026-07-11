@@ -10,12 +10,11 @@ a scan to a non-technical audience.
 from __future__ import annotations
 
 import time
-from typing import Optional
 
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QListWidget,
-                             QListWidgetItem, QPushButton, QWidget, QSlider)
+from PyQt6.QtWidgets import (QHBoxLayout, QLabel, QListWidget,
+                             QListWidgetItem, QPushButton, QSlider)
 
 from gui import theme
 from gui.widgets.entity_graph import EntityGraphView

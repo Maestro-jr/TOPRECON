@@ -75,7 +75,6 @@ class MessageDialog(FramelessDialog):
     def __init__(self, parent, title: str, message: str, *, confirm: bool = False,
                  level: str = "info"):
         super().__init__(parent, title=title, width=420)
-        col = theme.SEV.get(level, theme.ACCENT_TEAL)
         msg = QLabel(message); msg.setWordWrap(True)
         msg.setStyleSheet(f"color:{theme.TEXT_BRIGHT}; font-family:{theme.FONT_UI};"
                           "font-size:12px;")

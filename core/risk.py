@@ -8,7 +8,7 @@ it maps to (for the educational/demo audience). No Qt.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Iterable
 
 from .entities import Entity, EntityType

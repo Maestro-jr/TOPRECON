@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import threading
 from collections import Counter
-from typing import Iterable, Iterator, Optional
+from typing import Iterator, Optional
 
 import networkx as nx
 
@@ -34,6 +34,11 @@ class EntityGraph:
         self._g = nx.DiGraph()
         self._lock = threading.RLock()
         self._seed_key: Optional[str] = None
+        self._version = 0   # bumped on every mutation; lets the UI skip idle work
+
+    @property
+    def version(self) -> int:
+        return self._version
 
     # -- mutation ------------------------------------------------------------
 
@@ -47,6 +52,7 @@ class EntityGraph:
         with self._lock:
             self._g.clear()
             self._seed_key = None
+            self._version += 1
 
     def add_entity(self, entity: Entity) -> Entity:
         """Insert or merge *entity*; returns the canonical stored node.
@@ -57,6 +63,7 @@ class EntityGraph:
         """
         with self._lock:
             key = entity.key
+            self._version += 1
             if self._g.has_node(key):
                 existing: Entity = self._g.nodes[key]["entity"]
                 existing.merge(entity)
@@ -74,6 +81,7 @@ class EntityGraph:
                 if self._g.edges[src_key, dst_key].get("kind") == EDGE_DISCOVERED:
                     return
             self._g.add_edge(src_key, dst_key, kind=kind, label=label)
+            self._version += 1
 
     # -- queries -------------------------------------------------------------
 

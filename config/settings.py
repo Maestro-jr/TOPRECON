@@ -1,9 +1,14 @@
 """
 TOP RECON — configuration & secrets.
 
-Reads API keys from a local ``.env`` (never committed) or the OS environment,
-plus scan tunables. No secret is ever hardcoded. Missing keys are fine — the
-owning module simply shows "Needs Key" and the engine skips it.
+Reads API keys from a local ``config/.env`` (never committed) or the OS
+environment, plus scan tunables. No secret is ever hardcoded. Missing keys are
+fine — the owning module simply shows "Needs Key" and the engine skips it.
+
+Keys can be entered two ways, both landing in the same place:
+  * edit ``config/.env`` directly (copy ``config/.env.example``), or
+  * use the in-app **API Keys** dialog, which persists to ``config/.env`` via
+    :meth:`Settings.persist_keys` and applies them to the running session.
 """
 
 from __future__ import annotations
@@ -57,6 +62,32 @@ KEY_ENV = {
 }
 
 
+def _write_env(env_path: Path, updates: dict[str, str]) -> None:
+    """Merge ``{ENV_VAR: value}`` into *env_path*, preserving other lines."""
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    existing = (env_path.read_text(encoding="utf-8").splitlines()
+                if env_path.exists() else [])
+    seen: set[str] = set()
+    out: list[str] = []
+    for line in existing:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            name = stripped.split("=", 1)[0].strip()
+            if name in updates:
+                out.append(f"{name}={updates[name]}")
+                seen.add(name)
+                continue
+        out.append(line)
+    new = [n for n in updates if n not in seen]
+    if new:
+        if not existing:
+            out.append("# TOP RECON — API keys (written by the API Keys dialog).")
+        if out and out[-1].strip():
+            out.append("")
+        out.extend(f"{name}={updates[name]}" for name in new)
+    env_path.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
 class Settings:
     def __init__(self) -> None:
         self.env_path = _PKG_ROOT / "config" / ".env"
@@ -66,7 +97,9 @@ class Settings:
         self.max_depth   = int(os.environ.get("TOPRECON_MAX_DEPTH", 4))
         self.workers     = int(os.environ.get("TOPRECON_WORKERS", 24))
         self.rate_per_min = int(os.environ.get("TOPRECON_RATE_PER_MIN", 1250))
-        self._overrides: dict[str, str] = {}   # keys set live via the config panel
+        # Keys entered in the current session via the API Keys dialog; take
+        # precedence over the environment and are also written back to .env.
+        self._overrides: dict[str, str] = {}
 
     # -- API keys ------------------------------------------------------------
     def get_key(self, key: str) -> str:
@@ -81,6 +114,19 @@ class Settings:
 
     def has_key(self, key: str) -> bool:
         return bool(self.get_key(key))
+
+    def persist_keys(self, values: dict[str, str]) -> None:
+        """Apply keys to this session AND write them to ``config/.env``.
+
+        ``values`` maps source ids (the keys of :data:`KEY_ENV`) to secrets.
+        Empty values clear the override but are still written so the operator
+        can see the slot. The file is created from scratch if absent.
+        """
+        env_updates: dict[str, str] = {}
+        for kid, val in values.items():
+            self.set_key(kid, val)
+            env_updates[KEY_ENV.get(kid, kid.upper())] = (val or "").strip()
+        _write_env(self.env_path, env_updates)
 
     def get(self, name: str, default: Any = None) -> Any:
         return getattr(self, name, default)

@@ -67,6 +67,7 @@ def _win_button(glyph: str, name: str) -> QPushButton:
 
 class TitleBar(QFrame):
     new_recon_requested = pyqtSignal()
+    keys_requested      = pyqtSignal()
     minimize_requested  = pyqtSignal()
     maximize_requested  = pyqtSignal()
     close_requested     = pyqtSignal()
@@ -93,6 +94,13 @@ class TitleBar(QFrame):
         self._new_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._new_btn.clicked.connect(self.new_recon_requested)
         h.addWidget(self._new_btn)
+
+        self._keys_btn = QPushButton("⚿  KEYS")
+        self._keys_btn.setObjectName("keysBtn")
+        self._keys_btn.setToolTip("Enter API keys to unlock key-gated sources")
+        self._keys_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._keys_btn.clicked.connect(self.keys_requested)
+        h.addWidget(self._keys_btn)
 
         eng = QVBoxLayout(); eng.setSpacing(0)
         en = QLabel(engine_name)

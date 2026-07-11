@@ -23,12 +23,12 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 from .entities import Depth, Entity, EntityType
 from .events import Event, EventType
-from .graph import EDGE_PIVOT, EntityGraph
+from .graph import EntityGraph
 from .ratelimit import RateLimiter
 from .transforms import (ModuleStatus, Transform, TransformContext,
                          TransformRegistry)
@@ -106,6 +106,17 @@ class PivotEngine:
             self.modules[t.name] = ModuleRuntime(
                 name=t.name, display=t.display, category=t.category,
                 active=t.active, status=t.availability(self.settings))
+
+    def refresh_module_availability(self) -> None:
+        """Re-evaluate each idle module's availability (e.g. after new API keys
+        are saved) so newly-keyed sources flip from "Needs Key" to "Idle" live."""
+        for name, mod in self.modules.items():
+            if mod.status in (ModuleStatus.RUNNING, ModuleStatus.QUEUED):
+                continue
+            t = self.registry.get(name)
+            if t is not None:
+                mod.status = t.availability(self.settings)
+                self._emit_module(mod)
 
     def module_list(self) -> list[ModuleRuntime]:
         # Running first, then queued, then by descending hit count.

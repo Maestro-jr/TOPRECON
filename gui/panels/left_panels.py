@@ -7,7 +7,7 @@ from typing import Optional
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget,
+from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QVBoxLayout,
                              QListWidget, QListWidgetItem)
 
 from gui import theme
@@ -183,7 +183,6 @@ class DiscoveryDepthPanel(Panel):
         self.body.addStretch()
 
     def update_depths(self, by_depth: dict, max_depth: int) -> None:
-        total = sum(by_depth.values()) or 1
         peak = max(by_depth.values(), default=1) or 1
         for d, bar in self._bars.items():
             n = by_depth.get(d, 0)

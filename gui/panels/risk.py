@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget,
-                             QListWidget, QListWidgetItem)
+from PyQt6.QtWidgets import (QHBoxLayout, QLabel, QListWidget, QListWidgetItem)
 
 from gui import theme
 from gui.widgets.common import Panel

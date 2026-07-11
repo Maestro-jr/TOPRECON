@@ -260,6 +260,7 @@ class EntityGraphView(QGraphicsView):
         self._nodes: dict[str, _NodeItem] = {}
         self._edges: dict[tuple, _EdgeItem] = {}
         self._pos: dict[str, tuple[float, float]] = {}
+        self._metrics: dict[str, tuple] = {}   # key -> (risk, degree), change-gated
         self._filter: Optional[EntityType] = None
         self._selected_key: Optional[str] = None
         self._show_all_relations = False
@@ -279,6 +280,7 @@ class EntityGraphView(QGraphicsView):
         self._nodes.clear()
         self._edges.clear()
         self._pos.clear()
+        self._metrics.clear()
         self._selected_key = None
         self._filter = None
         self._dirty = False
@@ -339,6 +341,12 @@ class EntityGraphView(QGraphicsView):
         nodes, edges = self._model.snapshot()
         seed_key = self._model.seed_key
         changed = False
+        # Node degrees in one pass over the edge list — avoids a locked
+        # model.degree() call per node per frame.
+        degree: dict[str, int] = {}
+        for s, t, _kind, _label in edges:
+            degree[s] = degree.get(s, 0) + 1
+            degree[t] = degree.get(t, 0) + 1
         for ent in nodes:
             item = self._nodes.get(ent.key)
             if item is None:
@@ -350,7 +358,11 @@ class EntityGraphView(QGraphicsView):
                 self._scene.addItem(item)
                 self._nodes[ent.key] = item
                 changed = True
-            item.set_metrics(ent.risk, self._model.degree(ent.key))
+            # Only repaint a node when its risk or connectivity actually changed.
+            m = (ent.risk, degree.get(ent.key, 0))
+            if self._metrics.get(ent.key) != m:
+                self._metrics[ent.key] = m
+                item.set_metrics(ent.risk, m[1])
         for s, t, kind, label in edges:
             ek = (s, t)
             if ek not in self._edges and s in self._nodes and t in self._nodes:
