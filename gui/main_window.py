@@ -18,7 +18,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
                              QLabel, QFrame, QDockWidget, QStackedWidget,
-                             QPushButton, QSplitter, QTabWidget,
+                             QPushButton, QSplitter, QTabWidget, QButtonGroup,
                              QListWidget, QListWidgetItem, QFileDialog,
                              QTextBrowser, QMenu, QSizeGrip)
 
@@ -191,13 +191,25 @@ class MainWindow(QMainWindow):
             f"color:{theme.TEXT_MUTED}; font-family:{theme.FONT_MONO}; font-size:9px;")
         tb.addWidget(obs); tb.addWidget(piv)
         tb.addStretch()
+        # graph view controls (match the reference: LAYOUT / FIT / PAN / SELECT)
+        btn_layout = QPushButton("LAYOUT"); btn_layout.setToolTip("Re-run the force layout")
+        btn_layout.clicked.connect(lambda: self._graph_view.auto_layout())
+        btn_fit = QPushButton("⊕ FIT"); btn_fit.setToolTip("Fit the graph to view")
+        btn_fit.clicked.connect(lambda: self._graph_view.fit())
+        self._btn_pan = QPushButton("✥ PAN"); self._btn_pan.setCheckable(True); self._btn_pan.setChecked(True)
+        self._btn_pan.setToolTip("Drag to pan the canvas")
+        self._btn_pan.clicked.connect(lambda: self._set_graph_mode("pan"))
+        self._btn_select = QPushButton("⬚ SELECT"); self._btn_select.setCheckable(True)
+        self._btn_select.setToolTip("Rubber-band select nodes")
+        self._btn_select.clicked.connect(lambda: self._set_graph_mode("select"))
+        mode_grp = QButtonGroup(self); mode_grp.setExclusive(True)
+        mode_grp.addButton(self._btn_pan); mode_grp.addButton(self._btn_select)
+        # operational controls
         self._btn_relations = QPushButton("Relations"); self._btn_relations.setCheckable(True)
         self._btn_relations.setToolTip("Label every edge with the relationship it represents")
         self._btn_relations.toggled.connect(self._graph_view_set_relations)
         self._btn_google = QPushButton("GOOGLE COMPARE"); self._btn_google.setCheckable(True)
         self._btn_google.clicked.connect(self._toggle_google)
-        btn_layout = QPushButton("Auto Layout"); btn_layout.clicked.connect(lambda: self._graph_view.auto_layout())
-        btn_fit = QPushButton("Fit"); btn_fit.clicked.connect(lambda: self._graph_view.fit())
         self._btn_pause = QPushButton("⏸  PAUSE"); self._btn_pause.setObjectName("pauseBtn")
         self._btn_pause.setToolTip("Pause / resume outgoing requests")
         self._btn_pause.clicked.connect(self._toggle_pause)
@@ -208,8 +220,10 @@ class MainWindow(QMainWindow):
         btn_summary = QPushButton("Summary"); btn_summary.setObjectName("primary")
         btn_summary.clicked.connect(self._show_summary)
         btn_export = QPushButton("Export ▾"); btn_export.clicked.connect(self._export_menu)
-        for b in (self._btn_relations, self._btn_google, btn_layout, btn_fit,
-                  self._btn_pause, self._btn_stop, btn_hist, btn_summary, btn_export):
+        sep = QLabel("│"); sep.setStyleSheet(f"color:{theme.BORDER_HI};")
+        for b in (btn_layout, btn_fit, self._btn_pan, self._btn_select, sep,
+                  self._btn_relations, self._btn_google, self._btn_pause, self._btn_stop,
+                  btn_hist, btn_summary, btn_export):
             tb.addWidget(b)
         v.addLayout(tb)
 
@@ -384,15 +398,42 @@ class MainWindow(QMainWindow):
         return dock
 
     # ================================================================ footer
+    def _footer_tile(self, glyph: str, label: str, green: bool = False):
+        f = QFrame()
+        h = QHBoxLayout(f); h.setContentsMargins(16, 4, 16, 4); h.setSpacing(9)
+        ic = QLabel(glyph); ic.setStyleSheet(f"color:{theme.ACCENT_TEAL}; font-size:15px;")
+        col = QVBoxLayout(); col.setSpacing(0); col.setContentsMargins(0, 0, 0, 0)
+        lab = QLabel(label); lab.setObjectName("footLabel")
+        val = QLabel("—"); val.setObjectName("footValueGreen" if green else "footValue")
+        col.addWidget(lab); col.addWidget(val)
+        h.addWidget(ic); h.addLayout(col)
+        return f, val
+
     def _build_footer(self) -> None:
         sb = self.statusBar()
+        sb.setSizeGripEnabled(False)
         sb.setStyleSheet(f"QStatusBar {{ background:{theme.BG_PANEL};"
-                         f" color:{theme.TEXT_MUTED}; border-top:1px solid {theme.BORDER};"
-                         f" font-family:{theme.FONT_MONO}; font-size:10px; }}"
+                         f" border-top:1px solid {theme.BORDER}; }}"
                          "QStatusBar::item { border: none; }")
-        self._foot = QLabel("ENGINE IDLE")
-        sb.addWidget(self._foot)
-        # Frameless windows lose native edge-resize; a size grip restores it.
+        bar = QFrame(); bar.setObjectName("footerBar")
+        h = QHBoxLayout(bar); h.setContentsMargins(6, 2, 6, 2); h.setSpacing(0)
+        self._foot_tiles: dict[str, QLabel] = {}
+        tiles = [("status", "◆", "ENGINE STATUS", True),
+                 ("workers", "⚌", "WORKERS", False),
+                 ("rate", "◷", "RATE LIMIT", False),
+                 ("mem", "▤", "MEMORY", False),
+                 ("cpu", "◵", "CPU", False),
+                 ("uptime", "◔", "UPTIME", False),
+                 ("modules", "◈", "MODULES", False),
+                 ("update", "↻", "LAST UPDATE", False),
+                 ("sources", "⇄", "DATA SOURCES", True)]
+        for i, (key, glyph, label, green) in enumerate(tiles):
+            f, val = self._footer_tile(glyph, label, green)
+            self._foot_tiles[key] = val
+            h.addWidget(f)
+            if i < len(tiles) - 1:
+                h.addStretch(1)
+        sb.addWidget(bar, 1)
         grip = QSizeGrip(sb)
         sb.addPermanentWidget(grip)
 
@@ -564,15 +605,32 @@ class MainWindow(QMainWindow):
                 pass
         up = int(time.monotonic() - self._started_at)
         s = self._engine.stats()
+        running = sum(1 for m in self._engine.module_list() if m.status == "Running")
         avail = sum(1 for m in self._engine.module_list()
                     if m.status not in ("Needs Key", "Not Installed", "Disabled"))
-        self._foot.setText(
-            f"ENGINE {s['state']}   ·   WORKERS {s['inflight']}/{s['workers']}   ·   "
-            f"RATE LIMIT {s['rate_per_min']:,}/min   ·   MEM {mem}   ·   CPU {cpu}   ·   "
-            f"UPTIME {up//60:02d}m {up%60:02d}s   ·   MODULES {avail}/{len(self._engine.modules)} READY   ·   "
-            f"LAST UPDATE {time.strftime('%H:%M:%S')}")
+        t = self._foot_tiles
+        state = s["state"]
+        t["status"].setText("OPERATIONAL" if state in ("RUNNING", "DONE") else state)
+        t["status"].setStyleSheet(
+            f"color:{theme.ACCENT if state in ('RUNNING', 'DONE') else theme.QUEUED};"
+            f" font-family:{theme.FONT_MONO}; font-size:12px; font-weight:700;")
+        t["workers"].setText(f"{s['workers']} / {s['workers']}")
+        t["rate"].setText(f"{s['rate_per_min']:,} / min")
+        t["mem"].setText(mem)
+        t["cpu"].setText(cpu)
+        t["uptime"].setText(f"{up//3600}h {(up % 3600)//60}m {up % 60}s")
+        t["modules"].setText(f"{running} Running")
+        t["update"].setText(time.strftime('%H:%M:%S UTC', time.gmtime()))
+        t["sources"].setText(f"{avail} CONNECTED")
 
     # -- interactions -------------------------------------------------------
+    def _set_graph_mode(self, mode: str) -> None:
+        from PyQt6.QtWidgets import QGraphicsView
+        if mode == "select":
+            self._graph_view.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+        else:
+            self._graph_view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+
     def _graph_view_set_relations(self, on: bool) -> None:
         self._graph_view.set_show_relations(on)
 

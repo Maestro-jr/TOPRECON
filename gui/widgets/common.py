@@ -4,18 +4,36 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QRectF
+from PyQt6.QtCore import Qt, QRectF, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPen, QFont
 from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget,
-                             QSizePolicy)
+                             QSizePolicy, QScrollArea)
 
 from gui import theme
 
 
-class Panel(QFrame):
-    """A titled, bordered panel — the standard container for dashboard sections."""
+class _ViewAll(QLabel):
+    """A small 'VIEW ALL' link shown in a panel header."""
+    clicked = pyqtSignal()
 
-    def __init__(self, title: str, badge: str = "", parent: Optional[QWidget] = None):
+    def __init__(self, text: str = "VIEW ALL"):
+        super().__init__(text)
+        self.setObjectName("viewAll")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mousePressEvent(self, e):
+        self.clicked.emit()
+
+
+class Panel(QFrame):
+    """A titled, bordered panel — the standard container for dashboard sections.
+
+    Pass ``scrollable=True`` to place the body inside a styled scroll area so a
+    long list (entity types, discoveries, modules) scrolls instead of cramming.
+    """
+
+    def __init__(self, title: str, badge: str = "", parent: Optional[QWidget] = None,
+                 *, scrollable: bool = False):
         super().__init__(parent)
         self.setObjectName("panel")
         root = QVBoxLayout(self)
@@ -26,21 +44,45 @@ class Panel(QFrame):
         hl = QHBoxLayout(head); hl.setContentsMargins(0, 0, 0, 0); hl.setSpacing(6)
         self._title = QLabel(title.upper()); self._title.setObjectName("panelTitle")
         hl.addWidget(self._title)
-        hl.addStretch()
         self._badge = QLabel(badge); self._badge.setObjectName("panelBadge")
         hl.addWidget(self._badge)
+        hl.addStretch()
         root.addWidget(head)
-
-        self.body = QVBoxLayout(); self.body.setContentsMargins(0, 0, 0, 0)
-        self.body.setSpacing(6)
-        root.addLayout(self.body, 1)
         self._head_layout = hl
+
+        if scrollable:
+            area = QScrollArea(); area.setWidgetResizable(True)
+            area.setFrameShape(QFrame.Shape.NoFrame)
+            area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            host = QWidget(); host.setStyleSheet("background:transparent;")
+            self.body = QVBoxLayout(host)
+            self.body.setContentsMargins(0, 0, 6, 0); self.body.setSpacing(4)
+            area.setWidget(host)
+            root.addWidget(area, 1)
+            self._scroll = area
+        else:
+            self.body = QVBoxLayout(); self.body.setContentsMargins(0, 0, 0, 0)
+            self.body.setSpacing(6)
+            root.addLayout(self.body, 1)
+            self._scroll = None
+        self._root = root
 
     def set_badge(self, text: str) -> None:
         self._badge.setText(text)
 
     def add_header_widget(self, w: QWidget) -> None:
         self._head_layout.addWidget(w)
+
+    def add_view_all(self, on_click=None) -> _ViewAll:
+        link = _ViewAll()
+        if on_click is not None:
+            link.clicked.connect(on_click)
+        self._head_layout.addWidget(link)
+        return link
+
+    def add_footer(self, w: QWidget) -> None:
+        """Pin a widget below the (scrollable) body — e.g. a VIEW ALL row."""
+        self._root.addWidget(w)
 
 
 class MetricTile(QWidget):

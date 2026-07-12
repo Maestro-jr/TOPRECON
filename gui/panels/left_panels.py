@@ -90,7 +90,8 @@ class EntityTypesPanel(Panel):
              EntityType.NETBLOCK, EntityType.WHOIS_RECORD, EntityType.COMPANY]
 
     def __init__(self, parent=None):
-        super().__init__("Entity Types", parent=parent)
+        super().__init__("Entity Types", parent=parent, scrollable=True)
+        self.setMinimumHeight(180)
         self._active: Optional[EntityType] = None
         self._rows: dict[EntityType, _TypeRow] = {}
 
@@ -104,6 +105,10 @@ class EntityTypesPanel(Panel):
             self._rows[et] = row
             self.body.addWidget(row)
         self.body.addStretch()
+        # pinned footer link
+        foot = QLabel("VIEW ALL TYPES"); foot.setObjectName("viewAll")
+        foot.setContentsMargins(6, 6, 0, 0)
+        self.add_footer(foot)
 
     def _select(self, etype: Optional[EntityType]) -> None:
         self._active = None if etype == self._active else etype
@@ -118,7 +123,7 @@ class EntityTypesPanel(Panel):
             n = counts.get(et, 0)
             row.set_count(n)
             total += n
-        self.set_badge(str(total))
+        self.set_badge(f"({total})")
 
     def reset_filter(self) -> None:
         self._active = None

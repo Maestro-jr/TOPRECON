@@ -70,11 +70,16 @@ def stylesheet() -> str:
         letter-spacing: 2px;
     }}
     QLabel#panelBadge {{
-        color: {TEXT_MUTED};
+        color: {ACCENT_TEAL};
         font-family: {FONT_MONO};
         font-size: 11px;
         font-weight: 700;
     }}
+    QLabel#viewAll {{
+        color: {ACCENT_TEAL}; font-family: {FONT_MONO};
+        font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    }}
+    QLabel#viewAll:hover {{ color: {ACCENT}; }}
     QLabel#sectionLabel {{
         color: {TEXT_MUTED}; font-family: {FONT_MONO};
         font-size: 10px; letter-spacing: 1px;
@@ -125,6 +130,13 @@ def stylesheet() -> str:
 
     /* --- footer --- */
     QFrame#footer {{ background: {BG_PANEL}; border-top: 1px solid {BORDER}; }}
+    QFrame#footerBar {{ background: {BG_PANEL}; }}
+    QLabel#footLabel {{ color: {TEXT_MUTED}; font-family: {FONT_MONO};
+        font-size: 8px; font-weight: 700; letter-spacing: 1px; }}
+    QLabel#footValue {{ color: {TEXT_BRIGHT}; font-family: {FONT_MONO};
+        font-size: 12px; font-weight: 700; }}
+    QLabel#footValueGreen {{ color: {ACCENT}; font-family: {FONT_MONO};
+        font-size: 12px; font-weight: 700; }}
     QFrame#banner {{ background: #0d1a12; border: 1px solid {ACCENT_DIM};
                      border-radius: 4px; }}
     QLabel#bannerText {{ color: {ACCENT}; font-family: {FONT_MONO};

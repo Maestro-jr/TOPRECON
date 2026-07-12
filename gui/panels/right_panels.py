@@ -55,17 +55,20 @@ class _ModuleRow(QFrame):
 class ActiveModulesPanel(Panel):
     def __init__(self, parent=None):
         super().__init__("Active Modules", parent=parent)
+        self.add_view_all()
         area = QScrollArea(); area.setWidgetResizable(True)
         area.setFrameShape(QFrame.Shape.NoFrame)
-        host = QWidget(); self._v = QVBoxLayout(host)
-        self._v.setContentsMargins(0, 0, 0, 0); self._v.setSpacing(1)
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        host = QWidget(); host.setStyleSheet("background:transparent;")
+        self._v = QVBoxLayout(host)
+        self._v.setContentsMargins(0, 0, 6, 0); self._v.setSpacing(1)
         self._v.addStretch()
         area.setWidget(host)
         self.body.addWidget(area, 1)
         self._rows: dict[str, _ModuleRow] = {}
 
     def build(self, modules: list) -> None:
-        self.set_badge(str(len(modules)))
+        self.set_badge(f"({len(modules)})")
         for mod in modules:
             if mod.name in self._rows:
                 continue
@@ -90,6 +93,7 @@ class ActiveModulesPanel(Panel):
 class PivotQueuePanel(Panel):
     def __init__(self, parent=None):
         super().__init__("Pivot Queue", parent=parent)
+        self.add_view_all()
         self._t = QTableWidget(0, 4)
         self._t.setHorizontalHeaderLabels(["PIVOT", "FROM", "TOOL", "STATUS"])
         self._t.verticalHeader().setVisible(False)
@@ -104,7 +108,7 @@ class PivotQueuePanel(Panel):
         self._sig = None
 
     def update_queue(self, pending: list) -> None:
-        self.set_badge(str(len(pending)))
+        self.set_badge(f"({len(pending)})")
         show = pending[:60]
         # Skip the (allocating) table rebuild when the visible queue is unchanged.
         sig = tuple((pk.entity_value, pk.tool, pk.status) for pk in show)
@@ -130,7 +134,9 @@ class PivotQueuePanel(Panel):
 class RecentDiscoveriesPanel(Panel):
     def __init__(self, parent=None):
         super().__init__("Recent Discoveries", parent=parent)
+        self.add_view_all()
         self._list = QListWidget()
+        self._list.setMinimumHeight(120)
         self.body.addWidget(self._list, 1)
         self._max = 120
         self._seen = 0
