@@ -20,9 +20,8 @@ import asyncio
 import json
 import shutil
 
-from core.entities import Entity, EntityType
-from core.transforms import (Category, Emit, ModuleStatus, Transform,
-                             TransformContext)
+from core.entities import EntityType
+from core.transforms import Category, Emit, ModuleStatus, Transform
 from .common import (apex_domain, clean_host, http_client, in_scope, is_ip,
                      is_valid_domain)
 
@@ -769,7 +768,7 @@ class GitleaksTransform(_Subprocess):
         url = entity.data.get("url") or f"https://github.com/{entity.value}"
         import tempfile, os
         rep = os.path.join(tempfile.gettempdir(), "tr_" + entity.value.replace("/", "_"))
-        clone = await self._exec("git", "clone", "--depth", "1", url, rep, timeout=90.0)
+        await self._exec("git", "clone", "--depth", "1", url, rep, timeout=90.0)
         report = rep + "_gl.json"
         await self._exec("gitleaks", "detect", "-s", rep, "-r", report, "--no-git",
                          timeout=120.0)

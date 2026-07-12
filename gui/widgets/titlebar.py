@@ -10,10 +10,9 @@ toggles maximize. Cleaner and more cohesive than a default OS frame.
 from __future__ import annotations
 
 import math
-from typing import Optional
 
-from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal
-from PyQt6.QtGui import QColor, QPainter, QPen, QFont, QPolygonF, QLinearGradient
+from PyQt6.QtCore import Qt, QPointF, pyqtSignal
+from PyQt6.QtGui import QColor, QPainter, QPen, QPolygonF, QLinearGradient
 from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton,
                              QWidget)
 

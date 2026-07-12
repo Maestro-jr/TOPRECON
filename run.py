@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """TOP RECON launcher. Run:  python run.py"""
+#TODO findout if nikto has been added to the list of tools being used */
 import sys
 from pathlib import Path
 

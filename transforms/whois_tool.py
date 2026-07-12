@@ -7,7 +7,7 @@ from typing import Any
 
 from core.entities import Entity, EntityType
 from core.transforms import (Category, Emit, Transform, TransformContext)
-from .common import apex_domain, clean_host
+from .common import clean_host
 
 try:
     import whois as _whois          # python-whois

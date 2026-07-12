@@ -12,7 +12,7 @@ import asyncio
 import shutil
 
 from core.entities import Entity, EntityType
-from core.transforms import Category, Emit, ModuleStatus, Transform, TransformContext
+from core.transforms import Category, Emit, Transform, TransformContext
 from .common import apex_domain, clean_host, in_scope, is_valid_domain
 
 

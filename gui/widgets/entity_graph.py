@@ -181,8 +181,8 @@ class _EdgeItem(QGraphicsItem):
         self._dim = False
         self._hot = False
         self.setZValue(1)
-        self.setAcceptHoverEvents(True)
-        self.setToolTip(relation)
+        # No hover tooltip: relationships are revealed by clicking a node, which
+        # labels that node's edges — that is intentionally the only reveal.
 
     def set_endpoints(self, p1: QPointF, p2: QPointF) -> None:
         self.prepareGeometryChange()
@@ -264,6 +264,8 @@ class EntityGraphView(QGraphicsView):
         self._filter: Optional[EntityType] = None
         self._selected_key: Optional[str] = None
         self._show_all_relations = False
+        self._center_key: Optional[str] = None    # layout root (None -> seed)
+        self._isolated_key: Optional[str] = None  # when set, only this subtree shows
         self._dirty = False
 
         self._layout_timer = QTimer(self)
@@ -283,6 +285,8 @@ class EntityGraphView(QGraphicsView):
         self._metrics.clear()
         self._selected_key = None
         self._filter = None
+        self._center_key = None
+        self._isolated_key = None
         self._dirty = False
         self.resetTransform()
 
@@ -293,11 +297,51 @@ class EntityGraphView(QGraphicsView):
 
     def set_filter(self, etype: Optional[EntityType]) -> None:
         self._filter = etype
+        self._apply_visibility()
+
+    # -- focus: isolate a node's subtree / re-centre the layout on it --------
+    def _out_adjacency(self) -> dict:
+        adj: dict[str, list] = {}
+        for (s, t) in self._edges:
+            adj.setdefault(s, []).append(t)
+        return adj
+
+    def _subtree(self, key: str) -> set:
+        """*key* plus everything reachable from it via out-edges (its sub-links)."""
+        adj = self._out_adjacency()
+        seen = {key}
+        stack = [key]
+        while stack:
+            for nxt in adj.get(stack.pop(), ()):
+                if nxt not in seen:
+                    seen.add(nxt); stack.append(nxt)
+        return seen
+
+    def isolate(self, key: Optional[str], on: bool) -> None:
+        """Show only *key* and its sub-links; hide the rest. Off restores all."""
+        self._isolated_key = key if (on and key) else None
+        self._apply_visibility()
+        self._relayout(force=True)
+        self.fit()
+
+    def centralize(self, key: Optional[str], on: bool) -> None:
+        """Re-root the layout on *key* (its connections arrange around it)."""
+        self._center_key = key if (on and key) else None
+        self._relayout(force=True)
+        self.fit()
+
+    def _apply_visibility(self) -> None:
+        iso = self._subtree(self._isolated_key) if self._isolated_key else None
+        seed = self._model.seed_key
         for key, item in self._nodes.items():
-            ent = self._model.get(key)
-            visible = (etype is None or (ent and ent.etype == etype)
-                       or key == self._model.seed_key)
-            item.setVisible(visible)
+            if iso is not None:
+                vis = key in iso
+            elif self._filter is not None:
+                ent = self._model.get(key)
+                vis = bool((ent and ent.etype == self._filter) or key == seed)
+            else:
+                vis = True
+            item.setVisible(vis)
         for (s, t), eitem in self._edges.items():
             sv = self._nodes.get(s); tv = self._nodes.get(t)
             eitem.setVisible(bool(sv and tv and sv.isVisible() and tv.isVisible()))
@@ -332,8 +376,13 @@ class EntityGraphView(QGraphicsView):
         self.fit()
 
     def fit(self) -> None:
-        if self._scene.items():
-            self.fitInView(self._scene.itemsBoundingRect().adjusted(-60, -60, 60, 60),
+        rect = None
+        for item in self._nodes.values():
+            if item.isVisible():
+                br = item.sceneBoundingRect()
+                rect = br if rect is None else rect.united(br)
+        if rect is not None:
+            self.fitInView(rect.adjusted(-70, -70, 70, 70),
                            Qt.AspectRatioMode.KeepAspectRatio)
 
     # -- sync from the model ------------------------------------------------
@@ -378,8 +427,8 @@ class EntityGraphView(QGraphicsView):
         self._update_edges()
         if self._selected_key or self._show_all_relations:
             self.select_key(self._selected_key)
-        if self._filter is not None:
-            self.set_filter(self._filter)
+        if self._filter is not None or self._isolated_key is not None:
+            self._apply_visibility()
 
     def _seed_or_near(self, ent, seed_key):
         if ent.key == seed_key:
@@ -400,18 +449,26 @@ class EntityGraphView(QGraphicsView):
             self._dirty = False
 
     def _relayout(self, force: bool = False) -> None:
-        n = len(self._nodes)
+        # When isolated, lay out only the visible subtree so it fills the canvas.
+        if self._isolated_key:
+            keys = [k for k, it in self._nodes.items() if it.isVisible()]
+        else:
+            keys = list(self._nodes)
+        n = len(keys)
         if n < 2:
             return
+        keyset = set(keys)
         g = nx.Graph()
-        g.add_nodes_from(self._nodes)
-        g.add_edges_from(self._edges)
-        seed = self._model.seed_key
+        g.add_nodes_from(keys)
+        g.add_edges_from((s, t) for (s, t) in self._edges
+                         if s in keyset and t in keyset)
+        # Layout root: an explicit centre, else the isolated node, else the seed.
+        root = self._center_key or self._isolated_key or self._model.seed_key
         init = {k: (self._pos.get(k, (0, 0))[0] / 400.0,
-                    self._pos.get(k, (0, 0))[1] / 400.0) for k in self._nodes}
-        fixed = [seed] if seed in init else None
+                    self._pos.get(k, (0, 0))[1] / 400.0) for k in keys}
+        fixed = [root] if root in init else None
         if fixed:
-            init[seed] = (0.0, 0.0)
+            init[root] = (0.0, 0.0)
         try:
             pos = nx.spring_layout(
                 g, pos=init, fixed=fixed, k=1.8 / math.sqrt(max(n, 1)),

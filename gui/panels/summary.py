@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Optional
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget,
+from PyQt6.QtWidgets import (QHBoxLayout, QLabel, QVBoxLayout, QWidget,
                              QGridLayout)
 
 from gui import theme

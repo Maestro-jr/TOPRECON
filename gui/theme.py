@@ -179,16 +179,71 @@ def stylesheet() -> str:
                             border-radius: 3px; background: {BG_DEEP}; }}
     QCheckBox::indicator:checked {{ background: {ACCENT}; border-color: {ACCENT}; }}
 
-    /* --- scrollbars --- */
-    QScrollBar:vertical {{ background: transparent; width: 8px; margin: 0; }}
-    QScrollBar::handle:vertical {{ background: {BORDER_HI}; border-radius: 4px; min-height: 24px; }}
-    QScrollBar::handle:vertical:hover {{ background: {ACCENT_DIM}; }}
-    QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}
-    QScrollBar:horizontal {{ background: transparent; height: 8px; }}
-    QScrollBar::handle:horizontal {{ background: {BORDER_HI}; border-radius: 4px; min-width: 24px; }}
+    /* --- scrollbars (thin HUD rails) --- */
+    QScrollBar:vertical {{ background: transparent; width: 10px; margin: 2px 0; }}
+    QScrollBar::handle:vertical {{ background: {BORDER_HI}; border-radius: 5px;
+                                   min-height: 28px; }}
+    QScrollBar::handle:vertical:hover {{ background: {ACCENT_TEAL}; }}
+    QScrollBar:horizontal {{ background: transparent; height: 10px; margin: 0 2px; }}
+    QScrollBar::handle:horizontal {{ background: {BORDER_HI}; border-radius: 5px;
+                                     min-width: 28px; }}
+    QScrollBar::handle:horizontal:hover {{ background: {ACCENT_TEAL}; }}
+    QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; width: 0; }}
+    QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
 
-    QTabWidget::pane {{ border: 1px solid {BORDER}; }}
-    QTabBar::tab {{ background: {BG_PANEL}; color: {TEXT_MUTED};
-                    padding: 6px 14px; font-family: {FONT_MONO}; font-size: 10px; }}
-    QTabBar::tab:selected {{ color: {ACCENT}; border-bottom: 2px solid {ACCENT}; }}
+    /* --- bottom analysis tabs (full, uncramped titles) --- */
+    QTabWidget::pane {{ border: 1px solid {BORDER}; border-radius: 6px;
+                        background: {BG_PANEL}; top: -1px; }}
+    QTabBar {{ qproperty-drawBase: 0; }}
+    QTabBar::tab {{ background: transparent; color: {TEXT_MUTED};
+                    padding: 8px 20px; margin-right: 2px; min-width: 96px;
+                    font-family: {FONT_MONO}; font-size: 10px; font-weight: 700;
+                    letter-spacing: 1px; border: 1px solid transparent;
+                    border-top-left-radius: 5px; border-top-right-radius: 5px; }}
+    QTabBar::tab:hover {{ color: {TEXT_BRIGHT}; background: {BG_PANEL_HI}; }}
+    QTabBar::tab:selected {{ color: {ACCENT}; background: {BG_PANEL};
+                    border: 1px solid {BORDER}; border-bottom: 2px solid {ACCENT}; }}
+
+    /* --- left icon rail --- */
+    QFrame#iconRail {{ background: {BG_PANEL}; border-right: 1px solid {BORDER}; }}
+    QPushButton#railBtn {{ background: transparent; color: {TEXT_MUTED};
+        border: none; border-left: 2px solid transparent; border-radius: 0px;
+        font-size: 17px; padding: 0px; }}
+    QPushButton#railBtn:hover {{ color: {ACCENT_TEAL}; background: {BG_PANEL_HI}; }}
+    QPushButton#railBtn:checked {{ color: {ACCENT}; background: #0d1f17;
+        border-left: 2px solid {ACCENT}; }}
+
+    /* --- sub-header (authorised scope strip) --- */
+    QFrame#subHeader {{ background: {BG_PANEL}; border-bottom: 1px solid {BORDER}; }}
+    QLabel#subMuted {{ color: {TEXT_MUTED}; font-family: {FONT_MONO};
+        font-size: 10px; letter-spacing: 1px; }}
+    QLabel#subKey {{ color: {TEXT_FAINT}; font-family: {FONT_MONO};
+        font-size: 9px; letter-spacing: 2px; }}
+    QFrame#scopeChip {{ background: #0d1a12; border: 1px solid {ACCENT_DIM};
+        border-radius: 4px; }}
+    QLabel#scopeChipText {{ color: {ACCENT}; font-family: {FONT_MONO};
+        font-size: 11px; font-weight: 700; }}
+    QLabel#pillOn {{ color: {ACCENT}; background: #0d2a1c; border: 1px solid {ACCENT_DIM};
+        border-radius: 3px; padding: 3px 10px; font-family: {FONT_MONO};
+        font-size: 9px; font-weight: 700; letter-spacing: 1px; }}
+    QLabel#pillOff {{ color: {TEXT_MUTED}; background: transparent;
+        border: 1px solid {BORDER_HI}; border-radius: 3px; padding: 3px 10px;
+        font-family: {FONT_MONO}; font-size: 9px; font-weight: 700; letter-spacing: 1px; }}
+    QPushButton#configBtn {{ background: transparent; color: {ACCENT_TEAL};
+        border: 1px solid {BORDER_HI}; border-radius: 4px; padding: 5px 14px;
+        font-family: {FONT_MONO}; font-size: 10px; font-weight: 700; letter-spacing: 1px; }}
+    QPushButton#configBtn:hover {{ border-color: {ACCENT_TEAL}; background: {BG_PANEL_HI}; }}
+
+    /* --- graph focus bar (isolate / centralize a node) --- */
+    QFrame#focusBar {{ background: #0c1620; border: 1px solid {BORDER_HI};
+        border-radius: 5px; }}
+    QLabel#focusChip {{ color: {ACCENT_TEAL}; font-family: {FONT_MONO};
+        font-size: 12px; font-weight: 700; }}
+    QLabel#focusHint {{ color: {TEXT_MUTED}; font-family: {FONT_MONO}; font-size: 9px; }}
+    QPushButton#focusBtn {{ background: {BG_PANEL_HI}; color: {TEXT};
+        border: 1px solid {BORDER_HI}; border-radius: 4px; padding: 5px 12px;
+        font-family: {FONT_MONO}; font-size: 10px; font-weight: 700; }}
+    QPushButton#focusBtn:hover {{ color: {TEXT_BRIGHT}; border-color: {ACCENT_TEAL}; }}
+    QPushButton#focusBtn:checked {{ background: #0d2a1c; color: {ACCENT};
+        border-color: {ACCENT}; }}
     """
